@@ -6,12 +6,13 @@
 		"start": "node app.js"
 	},
 	"dependencies": {
-		"express": "4.12.x",
+		"express": "3.5.0",
 		"cfenv": "1.0.x",
 		"hjs": "0.0.6",
-		"cradle" : "0.6.7",
+		"cradle" : "*",
 		"twilio" : "1.6.0"
 	},
+	"subdomain": "sms",
 	"engines": {
     "node": "0.10.x"
   	},
