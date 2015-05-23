@@ -1,22 +1,59 @@
 var utils = require('../utils')
   , config = require('../config')
   , twilio = require('twilio')
-  , events = require('../events');
+  , events
+  , io;
+
+module.exports = function(socketio) {
+  io = socketio;
+  events = require('../events')(io);
+  return exports;
+};
+
 
 /*
  * GET home page.
  */
 
-exports.index = function(req, res){
+var index = exports.index = function(req, res){
   res.render('index', { title: 'Express' });
-};
+}
+
+/*
+ * GET an event.
+ */
+
+, getEvent = exports.getEvent = function(req, res){
+  events.findBy('all', {key: ['event:'+req.params.shortname], reduce:false}, function(err, event) {
+    if (event) {
+      events.voteCounts(event, function (err) {
+        if (err) {
+
+        }
+        else {
+
+
+          res.render('event', {
+            name: event.name, shortname: event.shortname, state: event.state,
+            phonenumber: utils.formatPhone(event.phonenumber), voteoptions: JSON.stringify(event.voteoptions)
+          });
+        }
+      });
+    }
+    else {
+      res.statusCode = 404;
+      res.send('We could not locate your event');
+    }
+  });
+}
 
 /*
  * POST new vote via SMS
  */
 
-exports.voteSMS = function(request, response) {
-    if (twilio.validateExpressRequest(request, config.twilio.key, {url: config.twilio.smsWebhook}) || config.disableTwilioSigCheck) {
+, voteSMS = exports.voteSMS = function(request, response) {
+
+    if (twilio.validateExpressRequest(request, config.twilio.key) || config.twilio.disableSigCheck) {
         response.header('Content-Type', 'text/xml');
         var body = request.param('Body').trim();
 
@@ -26,7 +63,7 @@ exports.voteSMS = function(request, response) {
         // the voter, use this to keep people from voting more than once
         var from = request.param('From');
 
-        events.findBy('phonenumber', to, function(err, event) {
+        events.findByPhonenumber(to, function(err, event) {
             if (err) {
                 console.log(err);
                 // silently fail for the user
@@ -43,23 +80,13 @@ exports.voteSMS = function(request, response) {
                 console.log('Bad vote: ' + event.name + ', ' + from + ', ' + body + ', ' + ('[1-'+event.voteoptions.length+']'));
                 response.send('<Response><Sms>Sorry, invalid vote. Please text a number between 1 and '+ event.voteoptions.length +'</Sms></Response>');
             }
-            else if (events.hasVoted(event, from)) {
-                console.log('Denying vote: ' + event.name + ', ' + from);
-                response.send('<Response><Sms>Sorry, you are only allowed to vote once.</Sms></Response>');
-            }
             else {
-
                 var vote = parseInt(body);
-
-                events.saveVote(event, vote, from, function(err, res) {
-                    if (err) {
-                        response.send('<Response><Sms>We encountered an error saving your vote.' + err + ' Try again?</Sms></Response>');
-                    }
-                    else {
-                        console.log('Accepting vote: ' + event.name + ', ' + from);
-                        response.send('<Response><Sms>Thanks for your vote for ' + res.name + '. Powered by Twilio.</Sms></Response>');
-                    }
-                });
+                events.saveVote(event, vote, from);
+                console.log('Accepting vote: ' + event.name + ', ' + from);
+                //io.sockets.in(event.shortname).emit('vote', vote);
+                //response.send('<Response><Sms>Thanks for your vote for ' + event.voteoptions[vote-1].name + '. Powered by Twilio.</Sms></Response>');
+                response.send('<Response></Response>');
             }
         });
     }
