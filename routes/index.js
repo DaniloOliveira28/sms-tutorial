@@ -50,7 +50,6 @@ var smsify = function(str) {
  *********************************************/
 
 , admin = exports.admin = function(req, res) {
-  debugger;
     var username = sessions.getLoggedInUser(req.cookies['AuthSession']);
     res.render('admin', {username: username});
   }
@@ -77,10 +76,58 @@ var smsify = function(str) {
     });
   }
 
+, getEventById = exports.getEventById = function(req, res){
+    events.findBy('all', {key: [req.params.id], reduce:false}, function(err, event) {
+      if (err) {
+        res.send(404, 'We could not locate your event');
+      }
+      else {
+        res.send(JSON.stringify(event));
+      }
+    });
+  }
+
+, saveEvent = exports.saveEvent = function(req, res) {
+    events.save(req.cookies['AuthSession'], req.body, function(err, body) {
+      if (err) {
+        console.log(err);
+        res.send(500, JSON.stringify({error: true}));
+      }
+      else {
+        // update the doc revision
+        req.body._rev = body.rev;
+        res.send(req.body);
+      }
+    });
+  }
+
+, destroyEvent = exports.destroyEvent = function(req, res) {
+    events.destroy(req.cookies['AuthSession'], req.params.id, req.query.rev, function(err, body) {
+      if (err) {
+        console.log(err);
+        res.send(500, JSON.stringify({error: true}));
+      }
+      else {
+        res.send(200, "OK");
+      }
+    });
+  }
+
+, getEventList = exports.getEventList = function(req, res) {
+    events.list(req.cookies['AuthSession'], function(err, list) {
+      if (err) {
+        res.send(401, JSON.stringify({error: true}));
+      }
+      else {
+        res.send(list);
+      }
+    });
+  }
+
 , login = exports.login = function(req, res) {
     sessions.login(req.body.username, req.body.password, function(err, cookie) {
       if (err) {
-        res.json(401, {error: true});
+        res.send(401, JSON.stringify({error: true}));
       }
       else {
         res.cookie(cookie);
@@ -100,7 +147,7 @@ var smsify = function(str) {
 
 , voteSMS = exports.voteSMS = function(request, response) {
 
-    if (twilio.validateExpressRequest(request, config.twilio.key) || config.twilio.disableSigCheck) {
+    if (twilio.validateExpressRequest(request, config.twilio.key, {url: config.twilio.smsWebhook}) || config.twilio.disableSigCheck) {
         response.header('Content-Type', 'text/xml');
         var body = request.param('Body').trim();
 
@@ -136,7 +183,7 @@ var smsify = function(str) {
         });
     }
     else {
-        response.render('forbidden');
+        response.status(403).render('forbidden');
     }
 }
 
@@ -146,7 +193,7 @@ var smsify = function(str) {
         response.render('voice');
     }
     else {
-        response.render('forbidden');
+        response.status(403).render('forbidden');
     }
 }
 

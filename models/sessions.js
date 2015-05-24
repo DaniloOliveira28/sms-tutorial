@@ -14,10 +14,10 @@ var config = require('../config')
   , removeLoggedInUser = exports.removeLoggedInUser = function(authSession) {
       delete loggedInUsers[authSession]
     }
-  
+
   , login = exports.login = function(username, password, callback) {
       db.auth(username, password, function (err, body, headers) {
-        if (err) { 
+        if (err) {
           return callback(err);
         }
         var cookie = headers['set-cookie'][0];

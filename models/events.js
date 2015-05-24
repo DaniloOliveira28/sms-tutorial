@@ -2,7 +2,7 @@ var config = require('../config')
   , _und = require('underscore')
   , client = require('twilio')(config.twilio.sid, config.twilio.key)
 
-  // Local caches for event and voting information (will be periodically flushed)    
+  // Local caches for event and voting information (will be periodically flushed)
   , eventsCache = {}
   , secondsToInvalidateEvents = config.couchdb.secondsToInvalidateEvents
 
@@ -18,7 +18,7 @@ var config = require('../config')
       else {
         params.url = config.couchdb.secureUrl;
       }
-      return require('nano')(params); 
+      return require('nano')(params);
     }
 
   // Look up the phone number, get the document's ID, then lookup the full document (including votes)
@@ -42,7 +42,7 @@ var config = require('../config')
         callback(null, event);
       }
       else {
-        
+
         getDb().view('event', view, params, function(err, body) {
           if (err) {
             console.log(err);
@@ -52,7 +52,7 @@ var config = require('../config')
             if (body.rows.length == 0) {
               var msg = 'No match for: ' + view + ', ' + JSON.stringify(params);
               console.log(msg);
-              callback(msg, null);              
+              callback(msg, null);
             }
             else {
               event = body.rows[0].value;
@@ -64,6 +64,33 @@ var config = require('../config')
       }
     }
 
+  , save = exports.save = function(cookie, event, callback) {
+      if (!event._id) { event._id = 'event:' + event.shortname }
+      if (!event.type) { event.type = 'event' }
+      getDb(cookie).insert(event, function(err, body) {
+        callback(err, body);
+      });
+    }
+
+  , destroy = exports.destroy = function(cookie, id, rev, callback) {
+      getDb(cookie).destroy(id, rev, function(err, body) {
+        callback(err, body);
+      });
+    }
+
+  , list = exports.list = function(cookie, callback) {
+      getDb(cookie).view('event', 'list', function(err, body) {
+        if (err) {
+          console.log(err);
+          callback(err);
+        }
+        else {
+          var events = _und.map(body.rows, function(row) {return row.value});
+          callback(null, events);
+        }
+      });
+    }
+
   , voteCounts = exports.voteCounts = function(event, callback) {
       getDb().view('event', 'all', {startkey: [event._id], endkey: [event._id, {}, {}], group_level: 2}, function(err, body) {
         if (err) {
@@ -71,7 +98,7 @@ var config = require('../config')
         }
         else {
           // populate count for voteoptions
-          event.voteoptions.forEach(function(vo, i){ 
+          event.voteoptions.forEach(function(vo, i){
             var found = _und.find(body.rows, function(x) {return x.key[1] == vo.id});
             vo['votes'] = (found? found.value : 0);
           });
@@ -80,10 +107,10 @@ var config = require('../config')
       });
     }
 
-  ,	saveVote = exports.saveVote = function(event, vote, from) {
+  , saveVote = exports.saveVote = function(event, vote, from) {
       // The _id of our vote document will be a composite of our event_id and the
-      // person's phone number. This will guarantee one vote per event 
-      var voteDoc = {  
+      // person's phone number. This will guarantee one vote per event
+      var voteDoc = {
         _id: 'vote:' + event._id + ':' + from,
         type: 'vote',
         event_id: event._id,
@@ -93,10 +120,10 @@ var config = require('../config')
       };
 
       votesCache[voteDoc._id] = voteDoc;
-  	}
+    }
 
   , flushVotes = function() {
-      
+
       var votesToSave = _und.values(votesCache);
       votesCache = {};
 

@@ -65,13 +65,20 @@ app.post('/vote/voice',           routes.voteVoice);
 app.post('/vote/voice/selection', routes.voiceSelection);
 
 app.get('/admin/', function(req, res) {
+  console.log('===requisicao===');
   if(appEnv.app.space_name === 'dev' && req.headers['x-forwarded-proto'] !== 'https') {
+    console.log('===1===');
     return res.redirect('https://' + req.get('Host') + req.url);
   }
   else {
+    console.log('===2===');
     routes.admin(req, res);
   }
 });
 
 app.post  ('/api/sessions',   routes.login);
 app.delete('/api/sessions',   routes.logout);
+app.get   ('/api/events',     routes.getEventList);
+app.get   ('/api/events/:id', routes.getEventById);
+app.delete('/api/events/:id', routes.destroyEvent);
+app.post  ('/api/events',     routes.saveEvent);
