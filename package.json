@@ -6,14 +6,15 @@
 		"start": "node app.js"
 	},
 	"dependencies": {
-    "express": "3.0.6",
-    "hjs": "0.0.4",
-    "twilio": "0.7.1",
-    "socket.io": "0.9.13",
-    "nano": "3.3.6",
-    "underscore": "1.4.3",
-    "request": "2.12.0",
-		"cfenv": "1.0.x"
+        "express": "3.0.6",
+        "hjs": "0.0.4",
+        "twilio": "0.7.1",
+        "socket.io": "0.9.13",
+        "nano": "3.3.6",
+        "underscore": "1.4.3",
+        "request": "2.12.0",
+        "validator": "*",
+    	"cfenv": "1.0.x"
 	},
 	"subdomain": "sms",
 	"engines": {
